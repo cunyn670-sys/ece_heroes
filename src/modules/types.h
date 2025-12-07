@@ -1,7 +1,7 @@
 #ifndef TYPES_H
 #define TYPES_H
-#define ROWS 10
-#define COLS 10
+#define ROWS 15
+#define COLS 15
 
 typedef enum {
     ITEM_EMPTY = -1,

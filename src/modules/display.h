@@ -21,4 +21,5 @@ void displayBoard(Item board[ROWS][COLS], int cx, int cy, int sx, int sy);
 // Affiche les infos niveau / vies / coups / temps
 void displayInfo(int level, int lives, int moves, int time, char objectiveText[]);
 
+void setCursor(int x, int y);
 #endif

@@ -1,4 +1,3 @@
-// display.c
 #include <stdio.h>
 #include <stdlib.h>
 #include <windows.h>
@@ -6,7 +5,20 @@
 #include "types.h"
 
 void clearScreen() {
-    system("cls");
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    DWORD count;
+    DWORD cellCount;
+    COORD homeCoords = {0, 0};
+
+    if (hOut == INVALID_HANDLE_VALUE) return;
+
+    if (!GetConsoleScreenBufferInfo(hOut, &csbi)) return;
+    cellCount = csbi.dwSize.X * csbi.dwSize.Y;
+
+    FillConsoleOutputCharacter(hOut, ' ', cellCount, homeCoords, &count);
+    FillConsoleOutputAttribute(hOut, csbi.wAttributes, cellCount, homeCoords, &count);
+    SetConsoleCursorPosition(hOut, homeCoords);
 }
 
 void setColor(int color) {
@@ -15,51 +27,48 @@ void setColor(int color) {
 }
 
 void setColorDefault() {
-    setColor(7); // couleur console par défaut (gris clair)
+    setColor(7); // gris clair
 }
 
 void printItem(Item it, int highlighted) {
     if (it.type == ITEM_EMPTY) {
         if (highlighted) {
-            // mettre en évidence même la case vide pour que la sélection soit visible
             setColor(BACKGROUND_BLUE | BACKGROUND_GREEN | FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY);
             printf("   ");
             setColorDefault();
-            return;
         } else {
             printf("   ");
-            return;
         }
+        return;
     }
 
     if (highlighted) {
-        // arrière-plan visible (cyan-ish) + texte lumineux
+        // sélection
         setColor(BACKGROUND_BLUE | BACKGROUND_GREEN | FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY);
     } else {
-        // couleur selon le type
-        if (it.type == ITEM_O) setColor(FOREGROUND_GREEN | FOREGROUND_INTENSITY);
-        else if (it.type == ITEM_X) setColor(FOREGROUND_RED | FOREGROUND_INTENSITY);
-        else if (it.type == ITEM_Q) setColor(FOREGROUND_BLUE | FOREGROUND_INTENSITY);
-        else if (it.type == ITEM_P) setColor(FOREGROUND_RED | FOREGROUND_GREEN);
-        else setColor(FOREGROUND_RED | FOREGROUND_BLUE | FOREGROUND_INTENSITY);
+        switch (it.type) {
+            case ITEM_O: setColor(FOREGROUND_GREEN | FOREGROUND_INTENSITY); break;   // O vert
+            case ITEM_X: setColor(FOREGROUND_RED | FOREGROUND_INTENSITY); break;     // X rouge
+            case ITEM_Q: setColor(FOREGROUND_BLUE | FOREGROUND_INTENSITY); break;    // ? bleu
+            case ITEM_P: setColor(FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY); break; // % jaune
+            default: setColor(7); break;
+        }
     }
 
     char c = (it.type == ITEM_O ? 'O' :
              it.type == ITEM_X ? 'X' :
              it.type == ITEM_Q ? '?' :
-             it.type == ITEM_P ? '%' : '*');
+             it.type == ITEM_P ? '%' : '.');
 
     printf(" %c ", c);
     setColorDefault();
 }
 
-void displayBoard(Item board[ROWS][COLS], int cx, int cy, int sx, int sy) {
-    printf("\n");
-
+void displayBoard(Item board[ROWS][COLS], int cursorX, int cursorY, int selectX, int selectY) {
     for (int i = 0; i < ROWS; i++) {
+        setCursor(0, i);
         for (int j = 0; j < COLS; j++) {
-            // highlight if this is either the current cursor OR the selected cell
-            int highlighted = (i == sx && j == sy) || (i == cx && j == cy);
+            int highlighted = (i == cursorX && j == cursorY) || (i == selectX && j == selectY);
             printItem(board[i][j], highlighted);
         }
         printf("\n");
@@ -73,4 +82,9 @@ void displayInfo(int level, int lives, int moves, int time, char objectiveText[]
     printf(" Coups  : %d\n", moves);
     printf(" Temps  : %d sec\n", time);
     printf(" Objectif : %s\n", objectiveText);
+}
+
+void setCursor(int x, int y) {
+    COORD pos = { x, y };
+    SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), pos);
 }

@@ -13,6 +13,31 @@
 #include "level.h"
 #include "save.h"
 
+// Fonction pour compter le nombre de cases d'un type donné sur le plateau
+int countType(Item board[ROWS][COLS], int type) {
+    int cnt = 0;
+    for (int i = 0; i < ROWS; i++)
+        for (int j = 0; j < COLS; j++)
+            if (board[i][j].type == type) cnt++;
+    return cnt;
+}
+// Génération du plateau
+void generateBoard(Item board[ROWS][COLS], Level level) {
+    int mark[ROWS][COLS];
+    int tries = 0;
+    int countTarget = 0;
+
+    do {
+        tries++;
+        for (int i = 0; i < ROWS; i++)
+            for (int j = 0; j < COLS; j++)
+                board[i][j].type = rand() % 4; // adapte le nombre de types si besoin
+
+        memset(mark, 0, sizeof(mark));
+
+        countTarget = countType(board, level.targetType);
+    } while ((detectMatches(board, mark) || countTarget >= level.targetCount) && tries < 1000);
+}
 void playLoop(Item board[ROWS][COLS], Level level, int *lives, char pseudo[]) {
     int cx = 0, cy = 0;      // Curseur
     int sx = -1, sy = -1;    // Sélection
@@ -20,11 +45,11 @@ void playLoop(Item board[ROWS][COLS], Level level, int *lives, char pseudo[]) {
 
     int moves = level.moves;
     int timeLeft = level.time;
+    int collectedTarget = 0; // compteur d'éléments collectés
 
     time_t lastTime = time(NULL);
 
     while (running) {
-
         // TIMER
         time_t now = time(NULL);
         if (now - lastTime >= 1) {
@@ -43,7 +68,6 @@ void playLoop(Item board[ROWS][COLS], Level level, int *lives, char pseudo[]) {
         displayInfo(level.level, *lives, moves, timeLeft, level.text);
 
         int k = readKey();
-
         if (k == 27) return; // ESC = abandon
 
         // Déplacements
@@ -63,36 +87,32 @@ void playLoop(Item board[ROWS][COLS], Level level, int *lives, char pseudo[]) {
                 board[cx][cy] = board[sx][sy];
                 board[sx][sy] = tmp;
 
-                moves--;
+                // Vérification de combos
+                int mark[ROWS][COLS] = {0};
+                if (detectMatches(board, mark)) {
+                    // Match valide → on compte le coup
+                    moves--;
 
-                    // Vérification de combos
-                    int mark[ROWS][COLS] = {0};
+                    // Suppression et comptage des éléments collectés
+                    for (int i = 0; i < ROWS; i++)
+                        for (int j = 0; j < COLS; j++)
+                            if (mark[i][j] == 1) {
+                                if (board[i][j].type == level.targetType)
+                                    collectedTarget++;
+                                board[i][j].type = ITEM_EMPTY;
+                            }
 
-                    if (detectMatches(board, mark)) {
-                        // Match valide → le coup est compté
-                        moves--;
+                    applyGravity(board);
+                    fillEmpty(board);
+                } else {
+                    // Pas de match → rollback de l'échange
+                    Item tmp2 = board[cx][cy];
+                    board[cx][cy] = board[sx][sy];
+                    board[sx][sy] = tmp2;
+                    // le coup n'est pas compté
+                }
 
-                        // Suppression
-                        for (int i = 0; i < ROWS; i++)
-                            for (int j = 0; j < COLS; j++)
-                                if (mark[i][j] == 1)
-                                    board[i][j].type = ITEM_EMPTY;
-
-                        applyGravity(board);
-                        fillEmpty(board);
-                    } else {
-                        // Pas de match → rollback de l'échange
-                        Item tmp2 = board[cx][cy];
-                        board[cx][cy] = board[sx][sy];
-                        board[sx][sy] = tmp2;
-
-                        // On NE compte PAS le coup
-                    }
-
-                    sx = sy = -1;
-
-                    // Fin de l'action
-
+                sx = sy = -1;
 
                 if (moves <= 0) {
                     printf("\nPlus de coups !\n");
@@ -103,65 +123,38 @@ void playLoop(Item board[ROWS][COLS], Level level, int *lives, char pseudo[]) {
             }
         }
 
-        // Objectif atteint ?
-        int countO = 0;
-        for (int i = 0; i < ROWS; i++)
-            for (int j = 0; j < COLS; j++)
-                if (board[i][j].type == level.targetType)
-                    countO++;
+            // Objectif atteint ?
+        if (collectedTarget >= level.targetCount) {
 
-        if (countO >= level.targetCount) {
-            printf("\nObjectif atteint !\nSauvegarde...\n");
+            // --- SI NIVEAU FINAL ---
+            if (level.level >= 4) {
+                clearScreen();
+                printf("\n FELICITATIONS ! \n");
+                printf("Vous avez termine le niveau 4 et gagne la partie !\n");
+                printf("Bravo %s !\n", pseudo);
+                Sleep(3000);
+                exit(0);  // Fin totale du programme
+            }
+
+            // --- SINON PASSAGE AU NIVEAU SUIVANT ---
+            printf("\nObjectif atteint ! Passage au niveau %d...\n", level.level + 1);
             saveGame(pseudo, level.level + 1, *lives);
             Sleep(1000);
+
+            Level nextLevel = getLevel(level.level + 1);
+            Item newBoard[ROWS][COLS];
+            generateBoard(newBoard, nextLevel);
+
+            playLoop(newBoard, nextLevel, lives, pseudo);
             return;
         }
+
 
         Sleep(20);
     }
 }
 
 
-
-void generateBoard(Item board[ROWS][COLS], Level level) {
-    int mark[ROWS][COLS];
-    int tries = 0;
-
-    do {
-        tries++;
-        for (int i = 0; i < ROWS; i++) {
-            for (int j = 0; j < COLS; j++) {
-                board[i][j].type = rand() % 4; // adapte le nombre de types si besoin
-            }
-        }
-
-        memset(mark, 0, sizeof(mark));
-        // tant qu'il y a des matches initiaux, régénérer
-    } while (detectMatches(board, mark) && tries < 1000);
-
-    // Optionnel : si tu veux éviter que l'objectif soit déjà atteint au départ,
-    // on vérifie et regénère si count >= targetCount
-    int countTarget = 0;
-    for (int i = 0; i < ROWS; i++)
-        for (int j = 0; j < COLS; j++)
-            if (board[i][j].type == level.targetType) countTarget++;
-
-    if (countTarget >= level.targetCount) {
-        // régénérer (simple stratégie : recommencer la génération)
-        tries = 0;
-        do {
-            tries++;
-            for (int i = 0; i < ROWS; i++)
-                for (int j = 0; j < COLS; j++)
-                    board[i][j].type = rand() % 4;
-
-            memset(mark, 0, sizeof(mark));
-        } while ((detectMatches(board, mark) || 
-                 // recompute countTarget
-                 ({ int ct=0; for (int ii=0; ii<ROWS; ii++) for (int jj=0; jj<COLS; jj++) if (board[ii][jj].type == level.targetType) ct++; ct >= level.targetCount; })) 
-                 && tries < 1000);
-    }
-}
 
 void startGame() {
     srand(time(NULL));
@@ -173,17 +166,10 @@ void startGame() {
 
     Item board[ROWS][COLS];
     generateBoard(board, L);
-    // après generateBoard(...)
-    int lives = 3;
-    int countO = 0;
-    for (int i = 0; i < ROWS; i++)
-        for (int j = 0; j < COLS; j++)
-            if (board[i][j].type == L.targetType) countO++;
 
-    printf("DEBUG: countTarget = %d, level.targetCount = %d\n", countO, L.targetCount);
+    int lives = 3;
 
     saveGame(pseudo, 1, lives);
-
     playLoop(board, L, &lives, pseudo);
 }
 
@@ -202,7 +188,7 @@ void startLoadedGame(char pseudo[]) {
     Level L = getLevel(level);
 
     Item board[ROWS][COLS];
-    generateBoard(board, L);
+    generateBoard(board, L); // si tu veux vraiment sauvegarder le plateau, il faudra le stocker
 
     playLoop(board, L, &lives, pseudo);
 }

@@ -1,3 +1,4 @@
+// display.c
 #include <stdio.h>
 #include <stdlib.h>
 #include <windows.h>
@@ -14,17 +15,28 @@ void setColor(int color) {
 }
 
 void setColorDefault() {
-    setColor(7);
+    setColor(7); // couleur console par défaut (gris clair)
 }
 
-void printItem(Item it, int selected) {
+void printItem(Item it, int highlighted) {
     if (it.type == ITEM_EMPTY) {
-        printf("   ");
-        return;
+        if (highlighted) {
+            // mettre en évidence même la case vide pour que la sélection soit visible
+            setColor(BACKGROUND_BLUE | BACKGROUND_GREEN | FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY);
+            printf("   ");
+            setColorDefault();
+            return;
+        } else {
+            printf("   ");
+            return;
+        }
     }
 
-    if (selected) setColor(BACKGROUND_BLUE | FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
-    else {
+    if (highlighted) {
+        // arrière-plan visible (cyan-ish) + texte lumineux
+        setColor(BACKGROUND_BLUE | BACKGROUND_GREEN | FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY);
+    } else {
+        // couleur selon le type
         if (it.type == ITEM_O) setColor(FOREGROUND_GREEN | FOREGROUND_INTENSITY);
         else if (it.type == ITEM_X) setColor(FOREGROUND_RED | FOREGROUND_INTENSITY);
         else if (it.type == ITEM_Q) setColor(FOREGROUND_BLUE | FOREGROUND_INTENSITY);
@@ -46,8 +58,9 @@ void displayBoard(Item board[ROWS][COLS], int cx, int cy, int sx, int sy) {
 
     for (int i = 0; i < ROWS; i++) {
         for (int j = 0; j < COLS; j++) {
-            int selected = (i == sx && j == sy);
-            printItem(board[i][j], selected);
+            // highlight if this is either the current cursor OR the selected cell
+            int highlighted = (i == sx && j == sy) || (i == cx && j == cy);
+            printItem(board[i][j], highlighted);
         }
         printf("\n");
     }

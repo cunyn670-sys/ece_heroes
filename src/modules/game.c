@@ -192,7 +192,7 @@ void playLoop(Item board[ROWS][COLS], Level level, int *lives, char pseudo[]) {
             if (needsRefresh) {
                 clearScreen();
                 displayBoard(board, cx, cy, sx, sy);
-                displayInfo(level.level, *lives, moves, timeLeft, level.text);
+                displayInfo(level.level, *lives, moves, timeLeft, level.text, collectedTarget, level.targetCount);
                 needsRefresh = 0;
             }
             Sleep(30);
@@ -258,7 +258,7 @@ void playLoop(Item board[ROWS][COLS], Level level, int *lives, char pseudo[]) {
                     // Montrer brièvement les cases vidées avant la gravité
                     clearScreen();
                     displayBoard(board, cx, cy, sx, sy);
-                    displayInfo(level.level, *lives, moves, timeLeft, level.text);
+                    displayInfo(level.level, *lives, moves, timeLeft, level.text, collectedTarget, level.targetCount);
                     Sleep(200);
 
                     applyGravity(board);
@@ -317,7 +317,7 @@ void playLoop(Item board[ROWS][COLS], Level level, int *lives, char pseudo[]) {
         if (needsRefresh) {
             clearScreen();
             displayBoard(board, cx, cy, sx, sy);
-            displayInfo(level.level, *lives, moves, timeLeft, level.text);
+            displayInfo(level.level, *lives, moves, timeLeft, level.text, collectedTarget, level.targetCount);
             needsRefresh = 0;
         }
 

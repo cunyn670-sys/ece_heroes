@@ -78,13 +78,28 @@ void displayBoard(Item board[ROWS][COLS], int cursorX, int cursorY, int selectX,
     }
 }
 
-void displayInfo(int level, int lives, int moves, int time, char objectiveText[]) {
+static void printProgressBar(int collected, int target) {
+    int width = 20;
+    if (target <= 0) target = 1;
+    int filled = collected * width / target;
+    if (filled > width) filled = width;
+
+    printf(" [");
+    for (int i = 0; i < width; i++) {
+        if (i < filled) printf("#");
+        else printf("-");
+    }
+    printf("] %d/%d\n", collected, target);
+}
+
+void displayInfo(int level, int lives, int moves, int time, char objectiveText[], int collected, int target) {
     printf("\n");
     printf(" Niveau : %d\n", level);
     printf(" Vies   : %d\n", lives);
     printf(" Coups  : %d\n", moves);
     printf(" Temps  : %d sec\n", time);
     printf(" Objectif : %s\n", objectiveText);
+    printProgressBar(collected, target);
 }
 
 void setCursor(int x, int y) {

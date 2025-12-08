@@ -42,6 +42,7 @@ void playLoop(Item board[ROWS][COLS], Level level, int *lives, char pseudo[]) {
     int cx = 0, cy = 0;      // Curseur
     int sx = -1, sy = -1;    // Sélection
     int running = 1;
+    int needsRefresh = 1;
 
     int moves = level.moves;
     int timeLeft = level.time;
@@ -55,6 +56,7 @@ void playLoop(Item board[ROWS][COLS], Level level, int *lives, char pseudo[]) {
         if (now - lastTime >= 1) {
             timeLeft--;
             lastTime = now;
+            needsRefresh = 1;
             if (timeLeft <= 0) {
                 printf("\nTemps écoulé !\n");
                 (*lives)--;
@@ -63,11 +65,18 @@ void playLoop(Item board[ROWS][COLS], Level level, int *lives, char pseudo[]) {
             }
         }
 
-        clearScreen();
-        displayBoard(board, cx, cy, sx, sy);
-        displayInfo(level.level, *lives, moves, timeLeft, level.text);
-
         int k = readKey();
+        if (k == -1) {
+            if (needsRefresh) {
+                clearScreen();
+                displayBoard(board, cx, cy, sx, sy);
+                displayInfo(level.level, *lives, moves, timeLeft, level.text);
+                needsRefresh = 0;
+            }
+            Sleep(30);
+            continue;
+        }
+        needsRefresh = 1;
         if (k == 27) return; // ESC = abandon
 
         // Déplacements
@@ -150,7 +159,14 @@ void playLoop(Item board[ROWS][COLS], Level level, int *lives, char pseudo[]) {
         }
 
 
-        Sleep(20);
+        if (needsRefresh) {
+            clearScreen();
+            displayBoard(board, cx, cy, sx, sy);
+            displayInfo(level.level, *lives, moves, timeLeft, level.text);
+            needsRefresh = 0;
+        }
+
+        Sleep(2);
     }
 }
 

@@ -13,14 +13,18 @@ void applyGravity(Item board[ROWS][COLS]) {
             }
         }
 
-        for (int i = write; i >= 0; i--)
+        for (int i = write; i >= 0; i--) {
             board[i][j].type = ITEM_EMPTY;
+            board[i][j].special = SPECIAL_NONE;
+        }
     }
 }
 
 void fillEmpty(Item board[ROWS][COLS]) {
     for (int i = 0; i < ROWS; i++)
         for (int j = 0; j < COLS; j++)
-            if (board[i][j].type == ITEM_EMPTY)
+            if (board[i][j].type == ITEM_EMPTY) {
                 board[i][j].type = rand() % 4;
+                board[i][j].special = SPECIAL_NONE;
+            }
 }

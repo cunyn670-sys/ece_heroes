@@ -13,7 +13,33 @@
 #include "level.h"
 #include "save.h"
 
-// Fonction pour compter le nombre de cases d'un type donné sur le plateau
+static void addSpecialBlast(Item board[ROWS][COLS], int mark[ROWS][COLS]) {
+    for (int i = 0; i < ROWS; i++) {
+        for (int j = 0; j < COLS; j++) {
+            if (mark[i][j] == 1) {
+                if (board[i][j].special == SPECIAL_LINE) {
+                    for (int c = 0; c < COLS; c++) mark[i][c] = 1;
+                } else if (board[i][j].special == SPECIAL_BOMB) {
+                    for (int di = -1; di <= 1; di++)
+                        for (int dj = -1; dj <= 1; dj++) {
+                            int ni = i + di, nj = j + dj;
+                            if (ni >= 0 && ni < ROWS && nj >= 0 && nj < COLS) mark[ni][nj] = 1;
+                        }
+                }
+            }
+        }
+    }
+}
+
+static int countMarked(int mark[ROWS][COLS]) {
+    int c = 0;
+    for (int i = 0; i < ROWS; i++)
+        for (int j = 0; j < COLS; j++)
+            if (mark[i][j]) c++;
+    return c;
+}
+
+// nombre de cases d'un type
 int countType(Item board[ROWS][COLS], int type) {
     int cnt = 0;
     for (int i = 0; i < ROWS; i++)
@@ -21,32 +47,49 @@ int countType(Item board[ROWS][COLS], int type) {
             if (board[i][j].type == type) cnt++;
     return cnt;
 }
-// Génération du plateau
+
+// Generation du plateau initial sans combo ni objectif atteint d'emblee
 void generateBoard(Item board[ROWS][COLS], Level level) {
-    int mark[ROWS][COLS];
     int tries = 0;
-    int countTarget = 0;
 
-    do {
+    while (tries < 1000) {
+        int countTarget = 0;
+
+        for (int i = 0; i < ROWS; i++) {
+            for (int j = 0; j < COLS; j++) {
+                int t;
+                int reroll = 0;
+                do {
+                    t = rand() % 4; // 4 types de base
+                    reroll++;
+                } while (reroll < 20 &&
+                        ((j >= 2 && board[i][j - 1].type == t && board[i][j - 2].type == t) ||
+                         (i >= 2 && board[i - 1][j].type == t && board[i - 2][j].type == t)));
+
+                board[i][j].type = t;
+                board[i][j].special = SPECIAL_NONE;
+                if (t == level.targetType) countTarget++;
+            }
+        }
+
+        int mark[ROWS][COLS] = {0};
+        if (!detectMatches(board, mark) && countTarget < level.targetCount) {
+            return;
+        }
+
         tries++;
-        for (int i = 0; i < ROWS; i++)
-            for (int j = 0; j < COLS; j++)
-                board[i][j].type = rand() % 4; // adapte le nombre de types si besoin
-
-        memset(mark, 0, sizeof(mark));
-
-        countTarget = countType(board, level.targetType);
-    } while ((detectMatches(board, mark) || countTarget >= level.targetCount) && tries < 1000);
+    }
 }
+
 void playLoop(Item board[ROWS][COLS], Level level, int *lives, char pseudo[]) {
     int cx = 0, cy = 0;      // Curseur
-    int sx = -1, sy = -1;    // Sélection
+    int sx = -1, sy = -1;    // Selection
     int running = 1;
     int needsRefresh = 1;
 
     int moves = level.moves;
     int timeLeft = level.time;
-    int collectedTarget = 0; // compteur d'éléments collectés
+    int collectedTarget = 0; // elements collectes
 
     time_t lastTime = time(NULL);
 
@@ -58,7 +101,7 @@ void playLoop(Item board[ROWS][COLS], Level level, int *lives, char pseudo[]) {
             lastTime = now;
             needsRefresh = 1;
             if (timeLeft <= 0) {
-                printf("\nTemps écoulé !\n");
+                printf("\nTemps ecoule !\n");
                 (*lives)--;
                 Sleep(1000);
                 return;
@@ -79,46 +122,73 @@ void playLoop(Item board[ROWS][COLS], Level level, int *lives, char pseudo[]) {
         needsRefresh = 1;
         if (k == 27) return; // ESC = abandon
 
-        // Déplacements
+        // Deplacements
         if (k == 'z' || k == 'Z') cx = (cx + ROWS - 1) % ROWS;
         if (k == 's' || k == 'S') cx = (cx + 1) % ROWS;
         if (k == 'q' || k == 'Q') cy = (cy + COLS - 1) % COLS;
         if (k == 'd' || k == 'D') cy = (cy + 1) % COLS;
 
-        // Sélection / permutation
+        // Selection / permutation
         if (k == ' ') {
             if (sx == -1) {
                 sx = cx;
                 sy = cy;
             } else {
-                // Échange
+                // deplacement limite a une case adjacente
+                if (abs(cx - sx) + abs(cy - sy) != 1) {
+                    sx = sy = -1;
+                    continue;
+                }
+
+                // Echange
                 Item tmp = board[cx][cy];
                 board[cx][cy] = board[sx][sy];
                 board[sx][sy] = tmp;
 
-                // Vérification de combos
+                // Verification de combos
                 int mark[ROWS][COLS] = {0};
+                int baseType = board[cx][cy].type;
+                int createdSpecial = 0;
+                int specialKind = SPECIAL_NONE;
+
                 if (detectMatches(board, mark)) {
-                    // Match valide → on compte le coup
+                    addSpecialBlast(board, mark);
+                    // Match valide => on compte le coup
                     moves--;
 
-                    // Suppression et comptage des éléments collectés
+                    int cleared = countMarked(mark);
+                    if (cleared >= 5) {
+                        createdSpecial = 1;
+                        specialKind = SPECIAL_BOMB;
+                    } else if (cleared >= 4) {
+                        createdSpecial = 1;
+                        specialKind = SPECIAL_LINE;
+                    }
+
+                    // Suppression et comptage des elements collectes
                     for (int i = 0; i < ROWS; i++)
                         for (int j = 0; j < COLS; j++)
                             if (mark[i][j] == 1) {
                                 if (board[i][j].type == level.targetType)
                                     collectedTarget++;
                                 board[i][j].type = ITEM_EMPTY;
+                                board[i][j].special = SPECIAL_NONE;
                             }
 
                     applyGravity(board);
+
+                    if (createdSpecial) {
+                        board[cx][cy].type = baseType;
+                        board[cx][cy].special = specialKind;
+                    }
+
                     fillEmpty(board);
                 } else {
-                    // Pas de match → rollback de l'échange
+                    // Pas de match => rollback de l'echange
                     Item tmp2 = board[cx][cy];
                     board[cx][cy] = board[sx][sy];
                     board[sx][sy] = tmp2;
-                    // le coup n'est pas compté
+                    // le coup n'est pas compte
                 }
 
                 sx = sy = -1;
@@ -132,7 +202,7 @@ void playLoop(Item board[ROWS][COLS], Level level, int *lives, char pseudo[]) {
             }
         }
 
-            // Objectif atteint ?
+        // Objectif atteint ?
         if (collectedTarget >= level.targetCount) {
 
             // --- SI NIVEAU FINAL ---
@@ -140,9 +210,9 @@ void playLoop(Item board[ROWS][COLS], Level level, int *lives, char pseudo[]) {
                 clearScreen();
                 printf("\n FELICITATIONS ! \n");
                 printf("Vous avez termine le niveau 4 et gagne la partie !\n");
-                printf("Bravo %s !\n", pseudo);
+                printf("Bravo %s ! Retour au menu principal.\n", pseudo);
                 Sleep(3000);
-                exit(0);  // Fin totale du programme
+                return;
             }
 
             // --- SINON PASSAGE AU NIVEAU SUIVANT ---
@@ -158,7 +228,6 @@ void playLoop(Item board[ROWS][COLS], Level level, int *lives, char pseudo[]) {
             return;
         }
 
-
         if (needsRefresh) {
             clearScreen();
             displayBoard(board, cx, cy, sx, sy);
@@ -169,8 +238,6 @@ void playLoop(Item board[ROWS][COLS], Level level, int *lives, char pseudo[]) {
         Sleep(2);
     }
 }
-
-
 
 void startGame() {
     srand(time(NULL));

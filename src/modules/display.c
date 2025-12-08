@@ -51,11 +51,14 @@ void printItem(Item it, int highlighted) {
             case ITEM_X: setColor(FOREGROUND_RED | FOREGROUND_INTENSITY); break;     // X rouge
             case ITEM_Q: setColor(FOREGROUND_BLUE | FOREGROUND_INTENSITY); break;    // ? bleu
             case ITEM_P: setColor(FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY); break; // % jaune
-            default: setColor(7); break;
+            default: setColor(FOREGROUND_RED | FOREGROUND_BLUE | FOREGROUND_INTENSITY); break; // spéciaux en magenta
         }
     }
 
-    char c = (it.type == ITEM_O ? 'O' :
+    char c;
+    if (it.special == SPECIAL_BOMB) c = 'B';
+    else if (it.special == SPECIAL_LINE) c = '-';
+    else c = (it.type == ITEM_O ? 'O' :
              it.type == ITEM_X ? 'X' :
              it.type == ITEM_Q ? '?' :
              it.type == ITEM_P ? '%' : '.');

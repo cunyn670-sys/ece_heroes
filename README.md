@@ -18,6 +18,11 @@ gcc -o ece_heroes.exe main.c modules/*.c
 ## Règles principales
 - Objectif : collecter un nombre d'items cibles avant la fin des coups/du temps pour passer au niveau suivant.
 - Génération : le plateau initial ne contient pas de séries de 3 et ne valide pas déjà l'objectif.
+- Combinaisons :
+  - Suite de 4 : la suite est supprimée.
+  - Suite de 6+ : supprime tous les items de ce type sur tout le plateau.
+  - Croix de 9 (bras de longueur 2) : supprime tous les items du type concerné sur la ligne et la colonne de la croix.
+  - Carré 4x4 homogène : supprime le carré complet.
 - Spéciaux :
   - Match de 4 → item spécial ligne (efface la ligne complète quand détruit).
   - Match de 5+ → bombe (efface un carré 3x3 autour de sa position).

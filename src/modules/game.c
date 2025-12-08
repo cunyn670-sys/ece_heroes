@@ -175,6 +175,12 @@ void playLoop(Item board[ROWS][COLS], Level level, int *lives, char pseudo[]) {
                                 board[i][j].special = SPECIAL_NONE;
                             }
 
+                    // Montrer brièvement les cases vidées avant la gravité
+                    clearScreen();
+                    displayBoard(board, cx, cy, sx, sy);
+                    displayInfo(level.level, *lives, moves, timeLeft, level.text);
+                    Sleep(200);
+
                     applyGravity(board);
 
                     if (createdSpecial) {

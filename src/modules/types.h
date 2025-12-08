@@ -1,6 +1,6 @@
 #ifndef TYPES_H
 #define TYPES_H
-#define ROWS 10
+#define ROWS 20
 #define COLS 10
 
 

@@ -21,7 +21,7 @@ typedef enum {
 typedef enum {
     SPECIAL_NONE = 0,
     SPECIAL_LINE = 1, // supprime une ligne
-    SPECIAL_BOMB = 2  // supprime un carré 3x3
+    SPECIAL_BOMB = 2  // supprime un carre 3x3
 } SpecialType;
 
 typedef struct {

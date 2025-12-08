@@ -3,16 +3,16 @@
 
 #include "types.h"
 
-// Efface l'écran (cls)
+// Efface l'ecran (cls)
 void clearScreen();
 
 // Change la couleur du texte
 void setColor(int color);
 
-// Restaure la couleur par défaut
+// Restaure la couleur par defaut
 void setColorDefault();
 
-// Affiche un item (avec ou sans surbrillance)
+// Affiche un item (avec ou sans surbrillance, speciaux compris)
 void printItem(Item it, int highlighted);
 
 // Affiche le plateau entier

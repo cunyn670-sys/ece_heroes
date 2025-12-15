@@ -4,5 +4,6 @@
 #include "types.h"
 
 int detectMatches(Item board[ROWS][COLS], int mark[ROWS][COLS]);
+void applyPatternClears(Item board[ROWS][COLS], int mark[ROWS][COLS]);
 
 #endif

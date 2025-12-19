@@ -17,35 +17,44 @@ Level getLevel(int lvl) {
     Level L;
 
     L.level = lvl;
-    L.time = 90;   // temps par niveau
-    L.moves = 40;  // coups par niveau
+    
 
     // Définition de l'objectif selon le niveau
     switch (lvl) {
         case 1:
             L.targetType = ITEM_O;  // Collecte des O
-            L.targetCount = 10;
+            L.targetCount = 20;
+            L.time = 90;   // temps par niveau
+            L.moves = 40;  // coups par niveau
             break;
 
         case 2:
             L.targetType = ITEM_X;  // Collecte des X
-            L.targetCount = 12;
+            L.targetCount = 25;
+            L.time = 75;   // temps par niveau
+            L.moves = 30;  // coups par niveau
             break;
 
         case 3:
             L.targetType = ITEM_Q;  // Collecte des ?
-            L.targetCount = 15;
+            L.targetCount = 30;
+            L.time = 60;   // temps par niveau
+            L.moves = 20;  // coups par niveau
             break;
 
         case 4:
             L.targetType = ITEM_P;  // Collecte des %
-            L.targetCount = 18;
+            L.targetCount = 40;
+            L.time = 45;   // temps par niveau
+            L.moves = 10;  // coups par niveau
             break;
 
         default:
             // Pour les niveaux supérieurs : cycle O → X → ? → %
             L.targetType = ITEM_O + (lvl % 4);
-            L.targetCount = 10 + lvl * 2;
+            L.targetCount = 40 + lvl * 2;
+            L.time = 45;   // temps par niveau
+            L.moves = 10;  // coups par niveau
             break;
     }
 
